@@ -15,3 +15,8 @@ handlers:
   - url: /.*
     script: auto
     secure: always
+
+secret_environment_variables:
+  - name: SLACK_WEBHOOK_URL
+    secret: GOCOMET_SLACK_WEBHOOK
+    version: latest

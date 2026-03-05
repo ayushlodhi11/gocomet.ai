@@ -1,12 +1,106 @@
+import { useState } from 'react';
 import './App.css';
 
+function EarlyAccessModal({ onClose }) {
+  const [form, setForm] = useState({ name: '', email: '', note: '' });
+  const [status, setStatus] = useState('idle'); // idle | loading | success | error
+  const [errorMsg, setErrorMsg] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setStatus('loading');
+    try {
+      const res = await fetch('/api/early-access', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Something went wrong.');
+      setStatus('success');
+    } catch (err) {
+      setErrorMsg(err.message);
+      setStatus('error');
+    }
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={e => e.stopPropagation()}>
+        <button className="modal-close" onClick={onClose}>✕</button>
+
+        {status === 'success' ? (
+          <div className="modal-success">
+            <div className="success-icon">✓</div>
+            <h3>You're on the list.</h3>
+            <p>We'll reach out to <strong>{form.email}</strong> shortly.</p>
+          </div>
+        ) : (
+          <>
+            <div className="modal-header">
+              <div className="modal-label">Early Access</div>
+              <h3>Request early access</h3>
+              <p>We're onboarding select enterprise logistics teams. Tell us about yourself.</p>
+            </div>
+
+            <form onSubmit={handleSubmit}>
+              <div className="form-group">
+                <label>Name</label>
+                <input
+                  type="text"
+                  placeholder="Ayush Lodhi"
+                  value={form.name}
+                  onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                  required
+                  autoFocus
+                />
+              </div>
+              <div className="form-group">
+                <label>Work email</label>
+                <input
+                  type="email"
+                  placeholder="ayush@company.com"
+                  value={form.email}
+                  onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label>Tell us about your logistics challenge <span className="optional">(optional)</span></label>
+                <textarea
+                  placeholder="We manage 500+ shipments/month across 12 countries and need to reduce procurement cycle time..."
+                  value={form.note}
+                  onChange={e => setForm(f => ({ ...f, note: e.target.value }))}
+                  rows={4}
+                />
+              </div>
+
+              {status === 'error' && (
+                <div className="form-error">{errorMsg}</div>
+              )}
+
+              <button type="submit" className="btn-submit" disabled={status === 'loading'}>
+                {status === 'loading' ? 'Sending…' : 'Request early access'}
+              </button>
+            </form>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
+  const [modalOpen, setModalOpen] = useState(false);
+
   return (
     <main>
+      {modalOpen && <EarlyAccessModal onClose={() => setModalOpen(false)} />}
+
       {/* Nav */}
       <nav>
         <span className="logo">GoComet<span className="accent">.</span>ai</span>
-        <a href="mailto:hello@gocomet.ai" className="nav-cta">Get in touch</a>
+        <button className="nav-cta" onClick={() => setModalOpen(true)}>Get in touch</button>
       </nav>
 
       {/* Hero */}
@@ -21,7 +115,7 @@ export default function App() {
           that delivers guaranteed outcomes — not just software to configure.
         </p>
         <div className="hero-actions">
-          <a href="mailto:hello@gocomet.ai" className="btn-primary">Request early access</a>
+          <button className="btn-primary" onClick={() => setModalOpen(true)}>Request early access</button>
           <a href="#outcomes" className="btn-ghost">See the model</a>
         </div>
       </section>
@@ -154,9 +248,9 @@ export default function App() {
           GoComet.ai is in early access. We're onboarding a select group of
           enterprise logistics teams to co-build the system of outcomes together.
         </p>
-        <a href="mailto:hello@gocomet.ai" className="btn-primary btn-large">
+        <button className="btn-primary btn-large" onClick={() => setModalOpen(true)}>
           Request early access
-        </a>
+        </button>
       </section>
 
       {/* Footer */}
