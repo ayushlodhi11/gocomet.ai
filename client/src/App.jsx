@@ -48,7 +48,7 @@ function EarlyAccessModal({ onClose }) {
                 <label>Name</label>
                 <input
                   type="text"
-                  placeholder="Ayush Lodhi"
+                  placeholder="Sarah Mitchell"
                   value={form.name}
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                   required
@@ -59,7 +59,7 @@ function EarlyAccessModal({ onClose }) {
                 <label>Work email</label>
                 <input
                   type="email"
-                  placeholder="ayush@company.com"
+                  placeholder="sarah@company.com"
                   value={form.email}
                   onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
                   required
