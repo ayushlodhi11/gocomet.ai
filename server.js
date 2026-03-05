@@ -7,7 +7,28 @@ const helmet      = require('helmet');
 
 const app  = express();
 const PORT = process.env.PORT || 8080;
-const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK_URL;
+
+// Load Slack webhook — env var in dev, Secret Manager in prod
+let slackWebhook = process.env.SLACK_WEBHOOK_URL || null;
+
+async function loadSecrets() {
+  if (slackWebhook || process.env.NODE_ENV !== 'production') return;
+  try {
+    const tokenRes = await fetch(
+      'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token',
+      { headers: { 'Metadata-Flavor': 'Google' } }
+    );
+    const { access_token } = await tokenRes.json();
+    const secretRes = await fetch(
+      'https://secretmanager.googleapis.com/v1/projects/gocomet-ai/secrets/GOCOMET_SLACK_WEBHOOK/versions/latest:access',
+      { headers: { Authorization: `Bearer ${access_token}` } }
+    );
+    const { payload } = await secretRes.json();
+    slackWebhook = Buffer.from(payload.data, 'base64').toString();
+  } catch (err) {
+    console.error('Failed to load secrets:', err.message);
+  }
+}
 
 app.use(compression());
 app.use(helmet({ contentSecurityPolicy: false }));
@@ -27,13 +48,12 @@ app.post('/api/early-access', async (req, res) => {
     return res.status(400).json({ error: 'Name and email are required.' });
   }
 
-  if (!SLACK_WEBHOOK) {
-    console.error('SLACK_WEBHOOK_URL not set');
+  if (!slackWebhook) {
+    console.error('Slack webhook not configured');
     return res.status(500).json({ error: 'Server misconfiguration.' });
   }
 
   const message = {
-    text: `🚀 *New Early Access Request*`,
     blocks: [
       {
         type: 'header',
@@ -58,7 +78,7 @@ app.post('/api/early-access', async (req, res) => {
   };
 
   try {
-    const response = await fetch(SLACK_WEBHOOK, {
+    const response = await fetch(slackWebhook, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(message)
@@ -76,6 +96,6 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'client/dist/index.html'));
 });
 
-app.listen(PORT, () => {
-  console.log(`gocomet.ai listening on port ${PORT}`);
+loadSecrets().then(() => {
+  app.listen(PORT, () => console.log(`gocomet.ai listening on port ${PORT}`));
 });
