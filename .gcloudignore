@@ -3,6 +3,5 @@
 .gitignore
 node_modules/
 client/node_modules/
-client/src/
 *.md
 .env*
